@@ -1,12 +1,15 @@
 import pandas as pd
 import numpy as np
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
 import joblib
 import os
 from dotenv import load_dotenv
 
+# Load environment variables
 load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
 
 app = FastAPI()
 
@@ -39,7 +42,11 @@ class InputData(BaseModel):
     features: dict
 
 @app.post("/predict")
-def predict_price(data: InputData):
+def predict_price(data: InputData, x_api_key: str = Header(...)):
+    # Check for valid API key
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Invalid or missing API Key")
+
     try:
         input_dict = data.features
 
@@ -51,7 +58,7 @@ def predict_price(data: InputData):
         # Convert to correct order
         input_values = [input_dict[col] for col in feature_columns]
 
-        # Convert the input to a pandas DataFrame
+        # Convert to DataFrame
         input_df = pd.DataFrame([input_values], columns=feature_columns)
 
         # Predict
