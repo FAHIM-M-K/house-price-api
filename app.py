@@ -4,6 +4,7 @@ import joblib
 import numpy as np
 import os
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 
@@ -36,6 +37,7 @@ feature_columns = [
 # Define input data model
 class InputData(BaseModel):
     features: dict
+import pandas as pd
 
 @app.post("/predict")
 def predict_price(data: InputData):
@@ -49,10 +51,12 @@ def predict_price(data: InputData):
 
         # Convert to correct order
         input_values = [input_dict[col] for col in feature_columns]
-        input_array = np.array(input_values).reshape(1, -1)
-
+        
+        # Convert to pandas DataFrame (if model was trained on a DataFrame)
+        input_df = pd.DataFrame([input_values], columns=feature_columns)
+        
         # Predict
-        prediction = model.predict(input_array)[0]
+        prediction = model.predict(input_df)[0]
 
         return {"predicted_price": prediction}
 
