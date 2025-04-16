@@ -5,6 +5,7 @@ from pydantic import BaseModel
 import joblib
 import os
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables
 load_dotenv()
@@ -13,10 +14,19 @@ API_KEY = os.getenv("API_KEY")
 
 app = FastAPI()
 
-# Load your model
+# Enable CORS for frontend access (adjust origins if needed)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Change to ["https://your-frontend-domain.com"] in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Load your trained model
 model = joblib.load("final_regression_pipeline.joblib")
 
-# Define expected columns (order matters!)
+# Define expected columns (order matters)
 feature_columns = [
     "ID", "Property_ID", "Building_Class", "Zoning_Class", "Lot_Frontage", "Lot_Area", "Street_Type",
     "Alley_Access", "Lot_Shape", "Land_Contour", "Utility_Type", "Lot_Configuration", "Land_Slope",
@@ -50,18 +60,18 @@ def predict_price(data: InputData, x_api_key: str = Header(...)):
     try:
         input_dict = data.features
 
-        # Validate all required features are present
+        # Validate that all required features are present
         if set(feature_columns) != set(input_dict.keys()):
             missing = set(feature_columns) - set(input_dict.keys())
             return {"error": f"Missing fields: {missing}"}
 
-        # Convert to correct order
+        # Create ordered input list
         input_values = [input_dict[col] for col in feature_columns]
 
         # Convert to DataFrame
         input_df = pd.DataFrame([input_values], columns=feature_columns)
 
-        # Predict
+        # Make prediction
         prediction = model.predict(input_df)[0]
 
         return {"predicted_price": prediction}
